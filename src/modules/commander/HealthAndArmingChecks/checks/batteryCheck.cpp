@@ -89,14 +89,20 @@ static constexpr const char *battery_mode_str(battery_mode_t battery_mode)
 
 BatteryChecks::BatteryChecks()
 {
-	if (param_get(param_find("COM_IS_TETHERED"), &value) != PX4_OK) {
-		// ToDo: Set default to false - 20230503 used for debugging the system
-		_is_tethered = true;
+	// ToDo: Set default to false - 20230503 used for debugging the system
+	int32_t value = true;
+
+	param_t ph = param_find("COM_IS_TETHERED");
+	if (ph != PARAM_INVALID && param_get(ph, &value) == PX4_OK) {
+
+		_is_tethered = (bool)value;
 	}
 
 	if (_is_tethered) {
-		if (param_get(param_find("TETHER_CURR_TOL"), &_tether_current_tolerance) != PX4_OK) {
-			_tether_current_tolerance = 0.90f;
+		ph = param_find("TETHER_CURR_TOL");
+		float fvalue = 0.90f;
+		if (ph != PARAM_INVALID && param_get(ph, &fvalue) == PX4_OK) {
+			_tether_current_tolerance = fvalue;
 		}
 	}
 }
@@ -218,9 +224,8 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 	if (_is_tethered) {
 		// check if there are 2 batteries connected
 		if (num_connected_batteries == 2) {
-			float temp = 0f;
 			if (_battery_currents[0] <= _battery_currents[1]) {
-				temp = _battery_currents[0];
+				float temp = _battery_currents[0];
 				_battery_currents[0] = _battery_currents[1];
 				_battery_currents[1] = temp;
 			}
