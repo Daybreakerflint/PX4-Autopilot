@@ -43,7 +43,7 @@
 class BatteryChecks : public HealthAndArmingCheckBase
 {
 public:
-	BatteryChecks() = default;
+	BatteryChecks();
 	~BatteryChecks() = default;
 
 	void checkAndReport(const Context &context, Report &reporter) override;
@@ -55,5 +55,6 @@ private:
 	uORB::Subscription					_rtl_time_estimate_sub{ORB_ID(rtl_time_estimate)};
 	bool _last_armed{false};
 	bool _battery_connected_at_arming[battery_status_s::MAX_INSTANCES] {};
+	bool _is_tethered{false};
 
 };

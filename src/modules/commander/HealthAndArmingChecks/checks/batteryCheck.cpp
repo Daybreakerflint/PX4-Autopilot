@@ -30,7 +30,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
+// ToDo: 20230503 Implement a battery check for a tethered system
 #include "batteryCheck.hpp"
 
 #include <px4_platform_common/events.h>
@@ -87,6 +87,18 @@ static constexpr const char *battery_mode_str(battery_mode_t battery_mode)
 }
 
 
+BatteryChecks::BatteryChecks()
+{
+	param_t ph = param_find("COM_IS_TETHERED");
+	int32_t value = false;
+	_is_tethered = (bool)value;
+
+	if (ph != PARAM_INVALID && param_get(ph, &value) == PX4_OK) {
+		_is_tethered = (bool)value;
+	}
+}
+
+
 void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 {
 	int battery_required_count = 0;
@@ -100,6 +112,7 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 	hrt_abstime oldest_update = hrt_absolute_time();
 	float worst_battery_time_s{NAN};
 	int num_connected_batteries{0};
+
 
 	for (auto &battery_sub : _battery_status_subs) {
 		int index = battery_sub.get_instance();

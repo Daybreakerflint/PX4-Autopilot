@@ -266,6 +266,18 @@ PARAM_DEFINE_INT32(COM_ARM_SWISBTN, 0);
 PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
 
 /**
+ * Is the system tethered
+ *
+ * Tells the system whether the system is tethered or not. The system is powerd
+ * by the tether. A small emergency battery is supplied.
+ *
+ * @group Commander
+ * @boolean
+ * @reboot_required true
+*/
+PARAM_DEFINE_INT32(COM_IS_TETHERED, 0);
+
+/**
  * Delay between failsafe condition triggered and failsafe reaction
  *
  * Before entering failsafe (RTL, Land, Hold), wait COM_FAIL_ACT_T seconds in Hold mode

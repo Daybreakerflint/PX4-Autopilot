@@ -2697,6 +2697,7 @@ void Commander::battery_status_check()
 
 		if (_failsafe_flags.battery_warning == battery_status_s::BATTERY_WARNING_EMERGENCY) {
 #if defined(BOARD_HAS_POWER_CONTROL)
+// ToDo: 20230503 Implement a battery check for a tethered system
 
 			if (shutdownIfAllowed() && (px4_shutdown_request(60_s) == 0)) {
 				mavlink_log_critical(&_mavlink_log_pub, "Dangerously low battery! Shutting system down in 60 seconds\t");
