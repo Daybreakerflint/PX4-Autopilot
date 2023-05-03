@@ -95,7 +95,7 @@ BatteryChecks::BatteryChecks()
 	}
 
 	if (_is_tethered) {
-		if (param_get(param_find("TETHER_CURR_TOL", &_tether_current_tolerance)) != PX4_OK) {
+		if (param_get(param_find("TETHER_CURR_TOL"), &_tether_current_tolerance) != PX4_OK) {
 			_tether_current_tolerance = 0.90f;
 		}
 	}
