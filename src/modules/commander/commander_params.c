@@ -282,7 +282,7 @@ PARAM_DEFINE_INT32(COM_IS_TETHERED, 1);
  * Current tolerance when the system is tethered.
  *
  * Sets the tolerance of the current when the system is tethered.
- * When (CUR_TETHER - CUR_BAT) is smaller than CUR_TETHER*COM_TETHER_CURRENT_TOLERANCE go into failsafe mode.
+ * When (CUR_TETHER - CUR_BAT) is smaller than CUR_TETHER*TETHER_CURR_TOL go into failsafe mode.
  *
  * @group Commander
  * @unit norm
@@ -292,7 +292,7 @@ PARAM_DEFINE_INT32(COM_IS_TETHERED, 1);
  * @increment 0.01
  * @reboot_required true
  */
-PARAM_DEFINE_FLOAT(COM_TETHER_CURRENT_TOLERANCE, 0.90f);
+PARAM_DEFINE_FLOAT(TETHER_CURR_TOL, 0.90f);
 
 /**
  * Delay between failsafe condition triggered and failsafe reaction
