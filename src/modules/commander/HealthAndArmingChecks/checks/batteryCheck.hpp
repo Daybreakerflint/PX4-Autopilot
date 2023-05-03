@@ -56,5 +56,7 @@ private:
 	bool _last_armed{false};
 	bool _battery_connected_at_arming[battery_status_s::MAX_INSTANCES] {};
 	bool _is_tethered{false};
+	float _tether_current_tolerance{0.9};
+	float _battery_currents[battery_status_s::MAX_INSTANCES] {};
 
 };

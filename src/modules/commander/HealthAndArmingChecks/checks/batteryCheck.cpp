@@ -89,12 +89,15 @@ static constexpr const char *battery_mode_str(battery_mode_t battery_mode)
 
 BatteryChecks::BatteryChecks()
 {
-	param_t ph = param_find("COM_IS_TETHERED");
-	int32_t value = false;
-	_is_tethered = (bool)value;
+	if (param_get(param_find("COM_IS_TETHERED"), &value) != PX4_OK) {
+		// ToDo: Set default to false - 20230503 used for debugging the system
+		_is_tethered = true;
+	}
 
-	if (ph != PARAM_INVALID && param_get(ph, &value) == PX4_OK) {
-		_is_tethered = (bool)value;
+	if (_is_tethered) {
+		if (param_get(param_find("COM_TETHER_CURRENT_TOLERANCE", &_tether_current_tolerance)) != PX4_OK) {
+			_tether_current_tolerance = 0.90f;
+		}
 	}
 }
 
@@ -107,6 +110,7 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 	// option is to check if ANY of them have a warning, and specifically find which one has the most
 	// urgent warning.
 	uint8_t worst_warning = battery_status_s::BATTERY_WARNING_NONE;
+	uint8_t tether_warning = battery_status_s::BATTERY_WARNING_NONE;
 	// To make sure that all connected batteries are being regularly reported, we check which one has the
 	// oldest timestamp.
 	hrt_abstime oldest_update = hrt_absolute_time();
@@ -161,6 +165,10 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 		}
 
 		if (battery.connected) {
+			if (_is_tethered) {
+				_battery_currents[num_connected_batteries] = battery.current_filtered_a;
+			}
+
 			++num_connected_batteries;
 
 			if (battery.warning > worst_warning) {
@@ -204,6 +212,52 @@ void BatteryChecks::checkAndReport(const Context &context, Report &reporter)
 				|| (PX4_ISFINITE(worst_battery_time_s) && (battery.time_remaining_s < worst_battery_time_s)))) {
 				worst_battery_time_s = battery.time_remaining_s;
 			}
+		}
+	}
+
+	if (_is_tethered) {
+		// check if there are 2 batteries connected
+		if (num_connected_batteries == 2) {
+			float temp = 0f;
+			if (_battery_currents[0] <= _battery_currents[1]) {
+				temp = _battery_currents[0];
+				_battery_currents[0] = _battery_currents[1];
+				_battery_currents[1] = temp;
+			}
+
+			if ((_battery_currents[0] - _battery_currents[1]) < (_battery_currents[0] * _tether_current_tolerance)) {
+				tether_warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
+				if (reporter.mavlink_log_pub()) {
+					mavlink_log_emergency(reporter.mavlink_log_pub(), "Tether Fail: Running on emergency battery");
+				}
+			}
+
+		} else if (num_connected_batteries == 1) {
+			// Tether system or battery not connected
+			// Something is either disconnected or faulty
+			tether_warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
+
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_emergency(reporter.mavlink_log_pub(), "Tether Fail: Tether or battery disconnected");
+			}
+		} else if (num_connected_batteries > 2) {
+			// Cannot handle more then 2 sources as of now
+			tether_warning = battery_status_s::BATTERY_WARNING_FAILED;
+
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Tether fail: %d connected -> Max 2 allowed", num_connected_batteries);
+			}
+		} else {
+			// No battery is detected
+			tether_warning = battery_status_s::BATTERY_WARNING_FAILED;
+
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Tether fail: No battery detected");
+			}
+		}
+
+		if (tether_warning > worst_warning) {
+			worst_warning = tether_warning;
 		}
 	}
 

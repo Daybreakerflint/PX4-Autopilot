@@ -266,16 +266,33 @@ PARAM_DEFINE_INT32(COM_ARM_SWISBTN, 0);
 PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
 
 /**
- * Is the system tethered
+ * Is the system powered via tether
  *
- * Tells the system whether the system is tethered or not. The system is powerd
+ * Tells the system whether the system is tethered or not. The system is powered
  * by the tether. A small emergency battery is supplied.
  *
  * @group Commander
  * @boolean
  * @reboot_required true
+ * ToDo: Set default to 0 - 20230503 used for debugging the system
 */
-PARAM_DEFINE_INT32(COM_IS_TETHERED, 0);
+PARAM_DEFINE_INT32(COM_IS_TETHERED, 1);
+
+/**
+ * Current tolerance when the system is tethered.
+ *
+ * Sets the tolerance of the current when the system is tethered.
+ * When (CUR_TETHER - CUR_BAT) is smaller than CUR_TETHER*COM_TETHER_CURRENT_TOLERANCE go into failsafe mode.
+ *
+ * @group Commander
+ * @unit norm
+ * @min 0.50
+ * @max 0.95
+ * @decimal 2
+ * @increment 0.01
+ * @reboot_required true
+ */
+PARAM_DEFINE_FLOAT(COM_TETHER_CURRENT_TOLERANCE, 0.90f);
 
 /**
  * Delay between failsafe condition triggered and failsafe reaction
