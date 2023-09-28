@@ -156,6 +156,10 @@ void TECSAltitudeReferenceModel::update(const float dt, const AltitudeReferenceS
 	_alt_control_traj_generator.setMaxAccel(param.vert_accel_limit);
 	_alt_control_traj_generator.setMaxVel(fmax(param.max_climb_rate, param.max_sink_rate));
 
+	// XXX: this is a bit risky.. .alt_rate here could be NAN (by interface design) - and is only ok to input to the
+	// setVelSpFeedback() method because it calls the reset in the logic below when it is NAN.
+	// TODO: stop it with the NAN interfaces, make sure to take care of this when refactoring and separating altitude
+	// and height rate control loops.
 	_velocity_control_traj_generator.setVelSpFeedback(setpoint.alt_rate);
 
 	bool control_altitude = true;
@@ -211,6 +215,7 @@ void TECSAltitudeReferenceModel::initialize(const AltitudeReferenceState &state)
 	const float init_state_alt_rate = PX4_ISFINITE(state.alt_rate) ? state.alt_rate : 0.f;
 
 	_alt_control_traj_generator.reset(0.0f, init_state_alt_rate, init_state_alt);
+	_velocity_control_traj_generator.reset(0.f, init_state_alt_rate, init_state_alt);
 }
 
 void TECSControl::initialize(const Setpoint &setpoint, const Input &input, Param &param, const Flag &flag)

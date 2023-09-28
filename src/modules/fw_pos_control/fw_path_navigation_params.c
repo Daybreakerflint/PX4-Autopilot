@@ -540,7 +540,7 @@ PARAM_DEFINE_FLOAT(FW_T_THR_DAMP, 0.1f);
  * @increment 0.05
  * @group FW TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_I_GAIN_THR, 0.1f);
+PARAM_DEFINE_FLOAT(FW_T_I_GAIN_THR, 0.05f);
 
 /**
  * Integrator gain pitch
@@ -603,7 +603,7 @@ PARAM_DEFINE_FLOAT(FW_T_SPD_STD, 0.2f);
  * @increment 0.1
  * @group FW TECS
  */
-PARAM_DEFINE_FLOAT(FW_T_SPD_DEV_STD, 0.05f);
+PARAM_DEFINE_FLOAT(FW_T_SPD_DEV_STD, 0.2f);
 
 /**
  * Process noise standard deviation for the airspeed rate in the airspeed filter.

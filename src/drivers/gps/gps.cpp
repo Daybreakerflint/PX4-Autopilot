@@ -60,6 +60,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/gps_dump.h>
 #include <uORB/topics/gps_inject_data.h>
 #include <uORB/topics/sensor_gps.h>
@@ -203,7 +204,7 @@ private:
 
 	const Instance 			_instance;
 
-	uORB::Subscription		     _orb_inject_data_sub{ORB_ID(gps_inject_data)};
+	uORB::SubscriptionMultiArray<gps_inject_data_s, gps_inject_data_s::MAX_INSTANCES> _orb_inject_data_sub{ORB_ID::gps_inject_data};
 	uORB::Publication<gps_inject_data_s> _gps_inject_data_pub{ORB_ID(gps_inject_data)};
 	uORB::Publication<gps_dump_s>	     _dump_communication_pub{ORB_ID(gps_dump)};
 	gps_dump_s			     *_dump_to_device{nullptr};
@@ -522,17 +523,23 @@ void GPS::handleInjectDataTopic()
 		return;
 	}
 
+	// We don't want to call copy again further down if we have already done a
+	// copy in the selection process.
+	bool already_copied = false;
 	gps_inject_data_s msg;
 
 	// If there has not been a valid RTCM message for a while, try to switch to a different RTCM link
 	if ((hrt_absolute_time() - _last_rtcm_injection_time) > 5_s) {
-		_last_rtcm_injection_time = hrt_absolute_time();
 
-		for (uint8_t i = 0; i < gps_inject_data_s::MAX_INSTANCES; i++) {
-			if (_orb_inject_data_sub.ChangeInstance(i)) {
-				if (_orb_inject_data_sub.copy(&msg)) {
+		for (int instance = 0; instance < _orb_inject_data_sub.size(); instance++) {
+			const bool exists = _orb_inject_data_sub[instance].advertised();
+
+			if (exists) {
+				if (_orb_inject_data_sub[instance].copy(&msg)) {
 					if ((hrt_absolute_time() - msg.timestamp) < 5_s) {
-						_selected_rtcm_instance = i;
+						// Remember that we already did a copy on this instance.
+						already_copied = true;
+						_selected_rtcm_instance = instance;
 						break;
 					}
 				}
@@ -540,7 +547,7 @@ void GPS::handleInjectDataTopic()
 		}
 	}
 
-	bool updated = false;
+	bool updated = already_copied;
 
 	// Limit maximum number of GPS injections to 8 since usually
 	// GPS injections should consist of 1-4 packets (GPS, Glonass, BeiDou, Galileo).
@@ -551,26 +558,24 @@ void GPS::handleInjectDataTopic()
 	size_t num_injections = 0;
 
 	do {
-		num_injections++;
-		updated = _orb_inject_data_sub.updated();
-
 		if (updated) {
+			num_injections++;
 
-			if (_orb_inject_data_sub.copy(&msg)) {
+			// Prevent injection of data from self
+			if (msg.device_id != get_device_id()) {
+				/* Write the message to the gps device. Note that the message could be fragmented.
+				* But as we don't write anywhere else to the device during operation, we don't
+				* need to assemble the message first.
+				*/
+				injectData(msg.data, msg.len);
 
-				// Prevent injection of data from self
-				if (msg.device_id != get_device_id()) {
-					/* Write the message to the gps device. Note that the message could be fragmented.
-					* But as we don't write anywhere else to the device during operation, we don't
-					* need to assemble the message first.
-					*/
-					injectData(msg.data, msg.len);
-
-					++_last_rate_rtcm_injection_count;
-					_last_rtcm_injection_time = hrt_absolute_time();
-				}
+				++_last_rate_rtcm_injection_count;
+				_last_rtcm_injection_time = hrt_absolute_time();
 			}
 		}
+
+		updated = _orb_inject_data_sub[_selected_rtcm_instance].update(&msg);
+
 	} while (updated && num_injections < max_num_injections);
 }
 
