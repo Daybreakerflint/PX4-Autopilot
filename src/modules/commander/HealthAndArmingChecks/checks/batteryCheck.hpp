@@ -59,4 +59,7 @@ private:
 	float _tether_current_tolerance{0.9};
 	float _battery_currents[battery_status_s::MAX_INSTANCES] {};
 
+	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
+					(ParamFloat<px4::params::COM_ARM_BAT_MIN>) _param_arm_battery_level_min
+				       )
 };

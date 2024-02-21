@@ -49,7 +49,9 @@
 #include "navigator_mode.h"
 #include "rtl.h"
 #include "takeoff.h"
+#if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 #include "vtol_takeoff.h"
+#endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 
 #include "navigation.h"
 
@@ -63,6 +65,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/geofence_result.h>
+#include <uORB/topics/gimbal_manager_set_attitude.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
@@ -77,6 +80,7 @@
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_roi.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/mode_completed.h>
 #include <uORB/uORB.h>
@@ -235,49 +239,28 @@ public:
 	void set_cruising_throttle(float throttle = NAN) { _mission_throttle = throttle; }
 
 	/**
-	 * Get the yaw acceptance given the current mission item
+	 * Get if the yaw acceptance is required at the current mission item
 	 *
 	 * @param mission_item_yaw the yaw to use in case the controller-derived radius is finite
 	 *
-	 * @return the yaw at which the next waypoint should be used or NaN if the yaw at a waypoint
-	 * should be ignored
+	 * @return true if the yaw acceptance is required, false if not required
 	 */
-	float get_yaw_acceptance(float mission_item_yaw);
+	bool get_yaw_to_be_accepted(float mission_item_yaw);
 
 	orb_advert_t *get_mavlink_log_pub() { return &_mavlink_log_pub; }
 
-	void increment_mission_instance_count() { _mission_result.instance_count++; }
-
-	int mission_instance_count() const { return _mission_result.instance_count; }
+	int mission_instance_count() const { return _mission_result.mission_id; }
 
 	void set_mission_failure_heading_timeout();
 
-	bool is_planned_mission() const { return _navigation_mode == &_mission; }
-
-	bool on_mission_landing() { return (_mission.landing() && _navigation_mode == &_mission); }
-
-	bool start_mission_landing() { return _mission.land_start(); }
-
 	bool get_mission_start_land_available() { return _mission.get_land_start_available(); }
-
-	int  get_mission_landing_index() { return _mission.get_land_start_index(); }
-
-	double get_mission_landing_start_lat() { return _mission.get_landing_start_lat(); }
-	double get_mission_landing_start_lon() { return _mission.get_landing_start_lon(); }
-	float  get_mission_landing_start_alt() { return _mission.get_landing_start_alt(); }
-
-	double get_mission_landing_lat() { return _mission.get_landing_lat(); }
-	double get_mission_landing_lon() { return _mission.get_landing_lon(); }
-	float  get_mission_landing_alt() { return _mission.get_landing_alt(); }
-
-	float get_mission_landing_loiter_radius() { return _mission.get_landing_loiter_rad(); }
 
 	// RTL
 	bool in_rtl_state() const { return _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL; }
 
 	bool abort_landing();
 
-	void geofence_breach_check(bool &have_geofence_position_data);
+	void geofence_breach_check();
 
 	// Param access
 	int get_loiter_min_alt() const { return _param_min_ltr_alt.get(); }
@@ -286,7 +269,6 @@ public:
 	int  get_takeoff_land_required() const { return _para_mis_takeoff_land_req.get(); }
 	float get_yaw_timeout() const { return _param_mis_yaw_tmt.get(); }
 	float get_yaw_threshold() const { return math::radians(_param_mis_yaw_err.get()); }
-	float get_lndmc_alt_max() const { return _param_lndmc_alt_max.get(); }
 
 	float get_vtol_back_trans_deceleration() const { return _param_back_trans_dec_mss; }
 
@@ -294,8 +276,9 @@ public:
 
 	void acquire_gimbal_control();
 	void release_gimbal_control();
+	void set_gimbal_neutral();
 
-	void calculate_breaking_stop(double &lat, double &lon, float &yaw);
+	void calculate_breaking_stop(double &lat, double &lon);
 
 	void stop_capturing_images();
 	void disable_camera_trigger();
@@ -339,8 +322,6 @@ private:
 	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
 
-	bool						_rtl_activated{false};
-
 	// Publications
 	geofence_result_s				_geofence_result{};
 	position_setpoint_triplet_s			_pos_sp_triplet{};	/**< triplet of position setpoints */
@@ -354,17 +335,20 @@ private:
 	GeofenceBreachAvoidance _gf_breach_avoidance;
 	hrt_abstime _last_geofence_check = 0;
 
-	bool		_geofence_violation_warning_sent{false};	/**< prevents spaming to mavlink */
+	hrt_abstime _wait_for_vehicle_status_timestamp{0}; /**< If non-zero, wait for vehicle_status update before processing next cmd */
+
+	bool		_geofence_reposition_sent{false};		/**< flag if reposition command has been sent for current geofence breach*/
+	hrt_abstime	_time_loitering_after_gf_breach{0};		/**< timestamp of when loitering after a geofence breach was started */
 	bool		_pos_sp_triplet_updated{false};			/**< flags if position SP triplet needs to be published */
 	bool 		_pos_sp_triplet_published_invalid_once{false};	/**< flags if position SP triplet has been published once to UORB */
 	bool		_mission_result_updated{false};			/**< flags if mission result has seen an update */
 
-	bool		_shouldEngageMissionForLanding{false};
-
 	Mission		_mission;			/**< class that handles the missions */
 	Loiter		_loiter;			/**< class that handles loiter */
 	Takeoff		_takeoff;			/**< class for handling takeoff commands */
+#if CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 	VtolTakeoff	_vtol_takeoff;			/**< class for handling VEHICLE_CMD_NAV_VTOL_TAKEOFF command */
+#endif //CONFIG_MODE_NAVIGATOR_VTOL_TAKEOFF
 	Land		_land;			/**< class for handling land commands */
 	PrecLand	_precland;			/**< class for handling precision land commands */
 	RTL 		_rtl;				/**< class that handles RTL */
@@ -426,7 +410,6 @@ private:
 		(ParamFloat<px4::params::MIS_YAW_TMT>)     _param_mis_yaw_tmt,
 		(ParamFloat<px4::params::MIS_YAW_ERR>)     _param_mis_yaw_err,
 		(ParamFloat<px4::params::MIS_PD_TO>)       _param_mis_payload_delivery_timeout,
-		(ParamFloat<px4::params::LNDMC_ALT_MAX>)   _param_lndmc_alt_max,
 		(ParamInt<px4::params::MIS_LND_ABRT_ALT>)  _param_mis_lnd_abrt_alt
 	)
 };

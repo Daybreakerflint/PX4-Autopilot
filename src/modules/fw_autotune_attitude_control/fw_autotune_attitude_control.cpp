@@ -75,6 +75,7 @@ bool FwAutotuneAttitudeControl::init()
 
 void FwAutotuneAttitudeControl::reset()
 {
+	_param_fw_at_start.reset();
 }
 
 void FwAutotuneAttitudeControl::Run()
@@ -229,7 +230,7 @@ void FwAutotuneAttitudeControl::checkFilters()
 			reset_filters = true;
 		}
 
-		if (reset_filters) {
+		if (reset_filters || !_are_filters_initialized) {
 			_are_filters_initialized = true;
 			_filter_sample_rate = update_rate_hz;
 			_sys_id.setLpfCutoffFrequency(_filter_sample_rate, _param_imu_gyro_cutoff.get());
