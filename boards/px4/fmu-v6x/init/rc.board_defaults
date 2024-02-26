@@ -3,6 +3,14 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
+# Mavlink tele1
+param set-default MAV_0_CONFIG 101
+param set-default MAV_0_BROADCAST 1
+param set-default MAV_0_FORWARD 1
+param set-default MAV_0_MODE 0
+param set-default MAV_0_RADIO_CTL 0
+param set-default MAV_0_RATE 100000
+
 # Mavlink ethernet (CFG 1000)
 param set-default MAV_2_CONFIG 1000
 param set-default MAV_2_BROADCAST 1
