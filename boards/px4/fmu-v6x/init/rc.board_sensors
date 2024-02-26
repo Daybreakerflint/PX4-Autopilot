@@ -21,11 +21,30 @@ fi
 if param compare SENS_EN_INA226 1
 then
 	# Start Digital power monitors
-	ina226 -X -b 1 -t 1 -k start
 
-	if [ $HAVE_PM2 = yes ]
+	if param compare INA226_BATT_ID 1
 	then
-		ina226 -X -b 2 -t 2 -k start
+		ina226 -X -b 1 -t 1 -k start
+
+		if [ $HAVE_PM2 = yes ]
+		then
+			ina226 -X -b 2 -t 1 -k start
+		fi
+	elif param compare INA226_BATT_ID 2
+	then
+		ina226 -X -b 1 -t 2 -k start
+
+		if [ $HAVE_PM2 = yes ]
+		then
+			ina226 -X -b 2 -t 2 -k start
+		fi
+	else
+		ina226 -X -b 1 -t 1 -k start
+
+		if [ $HAVE_PM2 = yes ]
+		then
+			ina226 -X -b 2 -t 2 -k start
+		fi
 	fi
 
 	set INA_CONFIGURED yes
@@ -34,10 +53,30 @@ fi
 if param compare SENS_EN_INA228 1
 then
 	# Start Digital power monitors
-	ina228 -X -b 1 -t 1 -k start
-	if [ $HAVE_PM2 = yes ]
+
+	if param compare INA228_BATT_ID 1
 	then
-		ina228 -X -b 2 -t 2 -k start
+		ina228 -X -b 1 -t 1 -k start
+
+		if [ $HAVE_PM2 = yes ]
+		then
+			ina228 -X -b 2 -t 1 -k start
+		fi
+	elif param compare INA228_BATT_ID 2
+	then
+		ina228 -X -b 1 -t 2 -k start
+
+		if [ $HAVE_PM2 = yes ]
+		then
+			ina228 -X -b 2 -t 2 -k start
+		fi
+	else
+		ina228 -X -b 1 -t 1 -k start
+
+		if [ $HAVE_PM2 = yes ]
+		then
+			ina228 -X -b 2 -t 2 -k start
+		fi
 	fi
 
 	set INA_CONFIGURED yes
@@ -45,11 +84,31 @@ fi
 
 if param compare SENS_EN_INA238 1
 then
-	# Start Digital power monitors
-	ina238 -X -b 1 -t 1 -k start
-	if [ $HAVE_PM2 = yes ]
+		# Start Digital power monitors
+
+	if param compare INA238_BATT_ID 1
 	then
-		ina238 -X -b 2 -t 2 -k start
+		ina238 -X -b 1 -t 1 -k start
+
+		if [ $HAVE_PM2 = yes ]
+		then
+			ina238 -X -b 2 -t 1 -k start
+		fi
+	elif param compare INA238_BATT_ID 2
+	then
+		ina238 -X -b 1 -t 2 -k start
+
+		if [ $HAVE_PM2 = yes ]
+		then
+			ina238 -X -b 2 -t 2 -k start
+		fi
+	else
+		ina238 -X -b 1 -t 1 -k start
+
+		if [ $HAVE_PM2 = yes ]
+		then
+			ina238 -X -b 2 -t 2 -k start
+		fi
 	fi
 
 	set INA_CONFIGURED yes

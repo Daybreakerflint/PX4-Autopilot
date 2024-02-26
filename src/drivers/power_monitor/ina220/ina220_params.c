@@ -43,6 +43,22 @@
 PARAM_DEFINE_INT32(SENS_EN_INA220, 0);
 
 /**
+ * INA220 Battery ID
+ *
+ * @group Sensors
+ * @min 0
+ * @max 2
+ * @decimal 1
+ * @increment 1
+ *
+ * @value 0 No battery id assigned
+ * @value 1 Battery ID 1
+ * @value 2 Battery ID 2
+*/
+PARAM_DEFINE_INT32(INA220_BATT_ID, 0);
+
+
+/**
  * INA220 Power Monitor Config
  *
  * @group Sensors
