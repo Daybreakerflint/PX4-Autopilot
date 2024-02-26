@@ -54,14 +54,14 @@
 constexpr char DEFAULT_NETMAN_CONFIG[] = "/fs/microsd/net.cfg";
 #if defined(CONFIG_NETINIT_DHCPC)
 #  define DEFAULT_PROTO   IPv4PROTO_FALLBACK
-#  define DEFAULT_IP      CONFIG_NETMAN_FALLBACK_IPADDR
+#  define DEFAULT_IP      0xc0a8001e
 #else
-#  define DEFAULT_PROTO   IPv4PROTO_STATIC
-#  define DEFAULT_IP      CONFIG_NETINIT_IPADDR
+#  define DEFAULT_PROTO   IPv4PROTO_FALLBACK
+#  define DEFAULT_IP      0xc0a8001e
 #endif
 #define DEFAULT_NETMASK   CONFIG_NETINIT_NETMASK
-#define DEFAULT_ROUTER    CONFIG_NETINIT_DRIPADDR
-#define DEFAULT_DNS       CONFIG_NETINIT_DNSIPADDR
+#define DEFAULT_ROUTER    0xc0a80001
+#define DEFAULT_DNS       0xc0a80001
 
 static void usage(const char *reason);
 __BEGIN_DECLS
